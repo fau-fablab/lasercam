@@ -1,6 +1,7 @@
 # raspi3-ip-camera
 Raspberry 3 as IP Camera with mjpgstreamer
 
+running in our lab on lasercam.lab.fablab.uni-erlangen.de
 
 # Raspberry Pi 3, with camera module, raspbian
 
@@ -40,3 +41,8 @@ sudo systemctl status mjpg_streamer_pi
 # start automatically after reboot:
 sudo systemctl enable mjpg_streamer_pi
 ```
+
+
+## Usage
+
+Fetch JPG from:  http://lasercam.lab.fablab.uni-erlangen.de:8080/?action=snapshot   (URL is only accessible from internal network)
