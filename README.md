@@ -12,6 +12,8 @@ Raspberry Pi 4, with camera module
 
 32bit Raspi OS lite
 
+DO NOT use the 64bit stuff, it cost me two hours of angry disappointment because some things don't work yet there (as of 2023-04).
+
 2023-02-21-raspios-bullseye-armhf-lite.img
 
 
