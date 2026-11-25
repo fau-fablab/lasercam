@@ -85,6 +85,8 @@ class CameraControls:
                 if name not in available:
                     continue
                 self._adopt_camera_range(c, available[name])
+                if name == "LensPosition" and args.lens_position is not None:
+                    c["default"] = min(max(round(args.lens_position * c["scale"]), c["min"]), c["max"])
             if c["type"] == CTRL_MENU:
                 c.setdefault("min", 0)
                 c.setdefault("max", len(c["menu"]) - 1)
@@ -410,12 +412,19 @@ def start_camera(args, frames):
 
     picam2 = Picamera2(args.camera)
     frame_us = int(1_000_000 / args.fps)
+    controls = {"FrameDurationLimits": (frame_us, frame_us)}
+    if args.lens_position is not None:
+        if "LensPosition" in picam2.camera_controls:
+            # fixed focus: autofocus off (AfMode 0 = Manual)
+            controls.update({"AfMode": 0, "LensPosition": args.lens_position})
+        else:
+            log.warning("Camera has no adjustable focus, --lens-position ignored")
     config = picam2.create_video_configuration(
         main={"size": (args.width, args.height), "format": "YUV420"},
         colour_space=ColorSpace.Sycc(),
         transform=Transform(hflip=args.hflip, vflip=args.vflip),
         buffer_count=args.buffers,
-        controls={"FrameDurationLimits": (frame_us, frame_us)},
+        controls=controls,
     )
     picam2.configure(config)
     active = picam2.camera_configuration()
@@ -442,19 +451,21 @@ def parse_resolution(value):
         w, h = value.lower().split("x")
         return int(w), int(h)
     except ValueError:
-        raise argparse.ArgumentTypeError(f"invalid resolution: {value!r} (expected e.g. 3000x2100)")
+        raise argparse.ArgumentTypeError(f"invalid resolution: {value!r} (expected e.g. 4608x2592)")
 
 
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("-r", "--resolution", type=parse_resolution, default=(3000, 2100))
-    p.add_argument("-q", "--quality", type=int, default=99, help="JPEG quality 1-100")
+    p.add_argument("-r", "--resolution", type=parse_resolution, default=(4608, 2592))
+    p.add_argument("-q", "--quality", type=int, default=90, help="JPEG quality 1-100")
     p.add_argument("-f", "--fps", type=float, default=5)
     p.add_argument("-p", "--port", type=int, default=8080)
     p.add_argument("-w", "--www", default="/usr/share/mjpg_streamer/www")
     p.add_argument("--camera", type=int, default=0)
     p.add_argument("--hflip", action="store_true")
     p.add_argument("--vflip", action="store_true")
+    p.add_argument("--lens-position", type=float, metavar="DIOPTRE",
+                   help="fixed focus for cameras with autofocus (v3): 1 / distance in m, 0 = infinity")
     p.add_argument("--buffers", type=int, default=4)
     p.add_argument("--threads", type=int, default=4, help="threads for JPEG encoding")
     p.add_argument("--watchdog", type=int, default=20, help="seconds without a frame until restart")
